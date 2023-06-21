@@ -46,10 +46,15 @@ def tokenize(code):
 def token_eval(tokens):
     for token in tokens:
         if token.ltype == "list": # TODO: CHANGE TO ENUM LATER
-            # if token.value[0] is a function evaluate list and return
+            #if token.value[0] is a function evaluate list and return
 
             token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
-        
+    
+
+
+
+def error(message):
+    print(f"\033[31;1;4mERROR\033[0m: {message}")
 
 def main():
 
@@ -62,3 +67,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
