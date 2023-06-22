@@ -47,8 +47,8 @@ class Token:
         self.value = value
 
     def __repr__(self):
-        
         return f"Token({self.t_type}, {self.value})"
+
 #==============================================================================
 
 # Helper Functions 
@@ -69,40 +69,37 @@ def tokenize(code):
     Token(List, (Token(Atom, add), Token(Atom, 1), Token(Atom, 2)))
     """
     
+    expr = Token(Type.EXPR, [])
 
     def traverse(start):
         inner_tokens = []
-        #value = 0 
+        getting_atom = 0
 
         for ix, char in enumerate(code[start:]):
-
             if char == '(':
+                if start + ix == 0:
+                    continue
                 inner_tokens.append(traverse(start + ix + 1))
-            elif is_atom(char):
-                inner_tokens.append(Token(Type.ATOM, char))
-            elif char == ')':
+            elif char == ')' :
                 return Token(Type.LIST, inner_tokens)
+            elif is_atom(char):
+                if getting_atom:
+                    continue
+                inner_tokens.append(get_atom(code, start + ix))
+                getting_atom = 1
+
             elif char.isspace():
-                continue
+                if getting_atom == 1:
+                    getting_atom = 0
+
             else:
                 error(f"Unrecognized symbol {char}")
-        return inner_tokens
+        return inner_tokens if inner_tokens else  None
+   
 
-    return traverse(0)
-
-    # counter = 0
-    # for char in code:
-    #     if char == '(':
-    #         counter += 1
-    #     elif char == ')':
-    #         counter -= 1
-    #     elif char == '':
-    # 
-    # if counter:
-    #
-    #
-    #
-    # return tokens
+    res = traverse(0)
+    expr.value = res
+    return expr
 
 def token_eval(tokens):
     print(tokens)
@@ -111,10 +108,22 @@ def token_eval(tokens):
     #         #if token.value[0] is a function evaluate list and return
     #
     #         token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
+    return 99
     
+def get_atom(string, ix):
+    return Token(Type.ATOM, string[ix:].split()[0])
+    # word = ""
+    # length = len(string)
+    # while ix < length and not string[ix].isspace():
+    #     word += string[ix]
+    #     ix += 1
+    # return word
 
 def is_atom(symbol):
-    return not symbol.isspace() 
+    return (not symbol.isspace() ) and (symbol not in "()")
+
+def is_ws(symbol):
+    return symbol.isspace() or symbol in "()"
 
 def error(message):
     print(f"\033[31;1;4mERROR\033[0m: {message}")
