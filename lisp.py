@@ -1,10 +1,17 @@
+from enum import Enum
+
 PROMPT = '*'
 
 
+#==============================================================================
 
+# R E P L 
 
+def read(): 
+    """
+    Read lisp code from stdin and returns it as a string.
+    """
 
-def read():
     try:
         return input(f'{PROMPT} ').upper()
         
@@ -12,22 +19,39 @@ def read():
         print("\r* Exiting lisp\n")
         exit()
 
-def evaluate(code): # assume code is a full lisp expression
+def evaluate(code): 
     """
-    Takes in stream of code and evaluates it, returning
-    the final value
+    Takes in stream of code and evaluates it, returning the final value
+
+    Code -> Tokenize -> Eval Tokens -> return final value
 
     ex) "(+ 1 2)" -> 3
     """
 
-
     tokens = tokenize(code) 
 
-    token_eval(tokens)
+    return token_eval(tokens)
 
+#==============================================================================
 
+# Token Class
 
+class Type(Enum):
+    LIST = 1
+    ATOM = 2
+    EXPR = 4
 
+class Token:
+    def __init__(self, t_type: Type, value):
+        self.t_type = t_type 
+        self.value = value
+
+    def __repr__(self):
+        
+        return f"Token({self.t_type}, {self.value})"
+#==============================================================================
+
+# Helper Functions 
 
 "(+ 2 (- (* 2 2) 4))"
 "1"
@@ -45,24 +69,26 @@ def tokenize(code):
     Token(List, (Token(Atom, add), Token(Atom, 1), Token(Atom, 2)))
     """
     
-    tokens = []
 
     def traverse(start):
-        type  = 0 
-        value = 0 
+        inner_tokens = []
+        #value = 0 
 
         for ix, char in enumerate(code[start:]):
+
             if char == '(':
-                value = traverse(start + ix) 
-            elif char == ')':
-                value = code[start:ix]
+                inner_tokens.append(traverse(start + ix + 1))
             elif is_atom(char):
-                pass
+                inner_tokens.append(Token(Type.ATOM, char))
+            elif char == ')':
+                return Token(Type.LIST, inner_tokens)
+            elif char.isspace():
+                continue
             else:
                 error(f"Unrecognized symbol {char}")
-        return 
+        return inner_tokens
 
-    traverse(0)
+    return traverse(0)
 
     # counter = 0
     # for char in code:
@@ -79,18 +105,20 @@ def tokenize(code):
     # return tokens
 
 def token_eval(tokens):
-    for token in tokens:
-        if token.ltype == "list": # TODO: CHANGE TO ENUM LATER
-            #if token.value[0] is a function evaluate list and return
-
-            token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
+    print(tokens)
+    # for token in tokens:
+    #     if token.ltype == "list": # TODO: CHANGE TO ENUM LATER
+    #         #if token.value[0] is a function evaluate list and return
+    #
+    #         token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
     
 
 def is_atom(symbol):
-    pass
+    return not symbol.isspace() 
 
 def error(message):
     print(f"\033[31;1;4mERROR\033[0m: {message}")
+    exit(1)
 
 def main():
 
@@ -103,6 +131,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
