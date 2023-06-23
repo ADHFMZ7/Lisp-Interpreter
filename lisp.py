@@ -29,7 +29,7 @@ def evaluate(code):
     """
 
     tokens = tokenize(code) 
-
+    print(tokens)
     return token_eval(tokens)
 
 #==============================================================================
@@ -69,61 +69,71 @@ def tokenize(code):
     Token(List, (Token(Atom, add), Token(Atom, 1), Token(Atom, 2)))
     """
     
-    expr = Token(Type.EXPR, [])
+    expr = Token(Type.EXPR, None)
 
     def traverse(start):
         inner_tokens = []
-        getting_atom = 0
+        getting_atom = False
+        inside = False
+        opened = code[start-1] == '(' if start > 0 else False
 
         for ix, char in enumerate(code[start:]):
             if char == '(':
+                opened = True
                 if start + ix == 0:
                     continue
                 inner_tokens.append(traverse(start + ix + 1))
+                inside = 1
             elif char == ')' :
+                if not opened:
+                    error("Unmatched parenthesis; '(' missing.")
+                if inside:
+                    inside = False 
+                    continue
                 return Token(Type.LIST, inner_tokens)
             elif is_atom(char):
-                if getting_atom:
+                if getting_atom or inside:
                     continue
                 inner_tokens.append(get_atom(code, start + ix))
-                getting_atom = 1
+                getting_atom = True
 
             elif char.isspace():
-                if getting_atom == 1:
-                    getting_atom = 0
+                if getting_atom:
+                    getting_atom = False
 
             else:
-                error(f"Unrecognized symbol {char}")
+                error(f"Unrecognized symbol {char}.")
+        if opened:
+            error("Unmatched parenthesis; ')' missing.")
         return inner_tokens if inner_tokens else  None
    
-
-    res = traverse(0)
-    expr.value = res
+    expr.value = traverse(0) 
     return expr
 
-def token_eval(tokens):
-    print(tokens)
+def token_eval(token):
+    if token.t_type == Type.EXPR:
+        pass
+    if token.t_type == Type.ATOM:
+        pass 
+
+
+
+
+
+    if token.t_type == Type.LIST:
+        pass
     # for token in tokens:
     #     if token.ltype == "list": # TODO: CHANGE TO ENUM LATER
     #         #if token.value[0] is a function evaluate list and return
     #
     #         token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
     return 99
-    
+
 def get_atom(string, ix):
     return Token(Type.ATOM, string[ix:].split()[0])
-    # word = ""
-    # length = len(string)
-    # while ix < length and not string[ix].isspace():
-    #     word += string[ix]
-    #     ix += 1
-    # return word
 
 def is_atom(symbol):
     return (not symbol.isspace() ) and (symbol not in "()")
-
-def is_ws(symbol):
-    return symbol.isspace() or symbol in "()"
 
 def error(message):
     print(f"\033[31;1;4mERROR\033[0m: {message}")
