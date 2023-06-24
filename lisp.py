@@ -1,3 +1,4 @@
+from functools import reduce
 from enum import Enum
 import re
 
@@ -8,12 +9,12 @@ env = {
 
 
     # Arithmetic operators
-    '+' : lambda a, b : a + b,
-    '-' : lambda a, b : a - b,
-    '*' : lambda a, b : a * b,
-    '/' : lambda a, b : a // b,
+    '+' : lambda *args : sum(args),
+    '-' : lambda a, *b : a - sum(b),
+    '*' : lambda *args : reduce(lambda a, b: a*b, args),
+    '/' : lambda a, *b : a // reduce(lambda x, y: x*y, b),
 
-    'exit': lambda : exit(0)
+    'EXIT': lambda : exit(0)
 }
 
 #==============================================================================
@@ -147,18 +148,11 @@ def token_eval(token):
              
             argv = [token_eval(tok) for tok in token.value]
             argc = len(argv)
-            return argv[0](argv[1], argv[2])
+            return argv[0](*argv[1:])
         except:
             error(f"Failed to run function '{token.value[0].value}'")
 
 
-    if token.t_type == Type.LIST:
-        pass
-    # for token in tokens:
-    #     if token.ltype == "list": # TODO: CHANGE TO ENUM LATER
-    #         #if token.value[0] is a function evaluate list and return
-    #
-    #         token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
     return 99
 def build_atom(token):
     return Token(Type.ATOM, token)
