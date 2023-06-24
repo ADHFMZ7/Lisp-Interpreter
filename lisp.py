@@ -1,36 +1,61 @@
 from enum import Enum
+import re
 
 PROMPT = '*'
+PATTERN = r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]{}('\"`,;)]*)"
 
+env = {
+
+
+    # Arithmetic operators
+    '+' : lambda a, b : a + b,
+    '-' : lambda a, b : a - b,
+    '*' : lambda a, b : a * b,
+    '/' : lambda a, b : a // b,
+
+    'exit': lambda : exit(0)
+}
 
 #==============================================================================
 
 # R E P L 
 
-def read(): 
+def read(prompt=PROMPT): 
     """
-    Read lisp code from stdin and returns it as a string.
+    Read lisp code from stdin and returns it as a list of tokens.
     """
 
     try:
-        return input(f'{PROMPT} ').upper()
-        
+        lines = []
+        while True:
+            line = input(f'{prompt} ')
+            lines.append(line)
+
+            # Check if the current line is the end of a multiline expression
+            if sum([i.count('(') - i.count(')') for i in lines]) > 0:
+                #prompt = '    '  # Use an increased indentation for the next line
+                #Will try to make auto indent work at another point.
+                prompt = ' '
+            else:
+                break  # Exit the loop if the current line is the last line of the expression
+
+        return re.findall(PATTERN, '\n'.join(lines).upper())
+
     except KeyboardInterrupt:
         print("\r* Exiting lisp\n")
         exit()
 
-def evaluate(code): 
-    """
-    Takes in stream of code and evaluates it, returning the final value
 
-    Code -> Tokenize -> Eval Tokens -> return final value
+def evaluate(tokens): 
+    """
+    Takes in stream of tokens and evaluates it, returning the final value
+
+    Tokenizs -> Eval Tokens recursively -> return final value
 
     ex) "(+ 1 2)" -> 3
     """
 
-    tokens = tokenize(code) 
-    print(tokens)
-    return token_eval(tokens)
+    return token_eval(tokenize(tokens))
 
 #==============================================================================
 
@@ -53,10 +78,8 @@ class Token:
 
 # Helper Functions 
 
-"(+ 2 (- (* 2 2) 4))"
-"1"
 
-def tokenize(code):
+def tokenize(tokens):
     """
     Takes stream of code and returns list of tokens
 
@@ -68,41 +91,31 @@ def tokenize(code):
     ex) "(+ 1 2)" -> 
     Token(List, (Token(Atom, add), Token(Atom, 1), Token(Atom, 2)))
     """
-    
     expr = Token(Type.EXPR, None)
 
     def traverse(start):
         inner_tokens = []
-        getting_atom = False
         inside = False
-        opened = code[start-1] == '(' if start > 0 else False
+        opened = tokens[start-1] == '(' if start > 0 else False
 
-        for ix, char in enumerate(code[start:]):
-            if char == '(':
+        for ix, tok in enumerate(tokens[start:]):
+            if tok == '(':
                 opened = True
                 if start + ix == 0:
                     continue
                 inner_tokens.append(traverse(start + ix + 1))
                 inside = 1
-            elif char == ')' :
+            elif tok == ')' :
                 if not opened:
                     error("Unmatched parenthesis; '(' missing.")
                 if inside:
                     inside = False 
                     continue
                 return Token(Type.LIST, inner_tokens)
-            elif is_atom(char):
-                if getting_atom or inside:
-                    continue
-                inner_tokens.append(get_atom(code, start + ix))
-                getting_atom = True
-
-            elif char.isspace():
-                if getting_atom:
-                    getting_atom = False
-
             else:
-                error(f"Unrecognized symbol {char}.")
+                if inside:
+                    continue
+                inner_tokens.append(build_atom(tok))
         if opened:
             error("Unmatched parenthesis; ')' missing.")
         return inner_tokens if inner_tokens else  None
@@ -110,14 +123,33 @@ def tokenize(code):
     expr.value = traverse(0) 
     return expr
 
+
 def token_eval(token):
+
+    token_val = token.value[0] if isinstance(token.value, list) else token.value
+
     if token.t_type == Type.EXPR:
-        pass
-    if token.t_type == Type.ATOM:
-        pass 
 
-
-
+        return token_eval(token_val)
+    elif token.t_type == Type.ATOM:
+        try:
+            return int(token_val)
+        except:
+            #error("DIDNT WORK")
+            pass
+        try:
+            return env[token_val]
+        except:
+            error(f"Undefined symbol {token_val}")
+        
+    elif token.t_type == Type.LIST:
+        try:
+             
+            argv = [token_eval(tok) for tok in token.value]
+            argc = len(argv)
+            return argv[0](argv[1], argv[2])
+        except:
+            error(f"Failed to run function '{token.value[0].value}'")
 
 
     if token.t_type == Type.LIST:
@@ -128,12 +160,8 @@ def token_eval(token):
     #
     #         token.value = token_eval(token.value)  # Overwrites value. See if this is doable, or another attribute is needed
     return 99
-
-def get_atom(string, ix):
-    return Token(Type.ATOM, string[ix:].split()[0])
-
-def is_atom(symbol):
-    return (not symbol.isspace() ) and (symbol not in "()")
+def build_atom(token):
+    return Token(Type.ATOM, token)
 
 def error(message):
     print(f"\033[31;1;4mERROR\033[0m: {message}")
