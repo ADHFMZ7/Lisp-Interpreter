@@ -15,6 +15,9 @@ env = {
     '/' : lambda a, *b : a // reduce(lambda x, y: x*y, b),
 
     'EXIT': lambda : exit(0)
+    #'QUOTE': lambda *args: 
+    #'CONS': lambda elem, li:  Figure out how to work with quoted lists later
+    #'CAR': lambda: 
 }
 
 #==============================================================================
