@@ -9,12 +9,13 @@ env = {
 
 
     # Arithmetic operators
-    '+' : lambda *args : sum(args),
-    '-' : lambda a, *b : a - sum(b),
-    '*' : lambda *args : reduce(lambda a, b: a*b, args),
-    '/' : lambda a, *b : a // reduce(lambda x, y: x*y, b),
+    '+' : lambda *args : sum(args[:-1]),
+    '-' : lambda a, *b : a - sum(b[:-1]),
+    '*' : lambda *args : reduce(lambda a, b: a*b, args[:-1]),
+    '/' : lambda a, *b : a // reduce(lambda x, y: x*y, b[:-1]),
 
-    'EXIT': lambda : exit(0)
+    'EXIT': lambda *args: exit(0),
+    'DEFINE': lambda a, b, en : en.__setitem__(a, b)
     #'QUOTE': lambda *args: 
     #'CONS': lambda elem, li:  Figure out how to work with quoted lists later
     #'CAR': lambda: 
@@ -144,14 +145,14 @@ def token_eval(token):
         try:
             return env[token_val]
         except:
-            error(f"Undefined symbol {token_val}")
+            return token_val
         
     elif token.t_type == Type.LIST:
         try:
              
             argv = [token_eval(tok) for tok in token.value]
             argc = len(argv)
-            return argv[0](*argv[1:])
+            return argv[0](*argv[1:], env)
         except:
             error(f"Failed to run function '{token.value[0].value}'")
 
