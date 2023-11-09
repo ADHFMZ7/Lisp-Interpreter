@@ -1,6 +1,7 @@
 from functools import reduce
 from enum import Enum
 import re
+import ast
 
 PROMPT = '*'
 PATTERN = r"[\s,]*(~@|[\[\]{}()'`~^@]|\"(?:\\.|[^\\\"])*\"?|;.*|[^\s\[\]{}('\"`,;)]*)"
@@ -12,7 +13,7 @@ env = {
     '+' : lambda *args : sum(args[:-1]),
     '-' : lambda a, *b : a - sum(b[:-1]),
     '*' : lambda *args : reduce(lambda a, b: a*b, args[:-1]),
-    '/' : lambda a, *b : a // reduce(lambda x, y: x*y, b[:-1]),
+    '/' : lambda a, *b : a / reduce(lambda x, y: x*y, b[:-1]),
 
     'EXIT': lambda *args: exit(0),
     'DEFINE': lambda a, b, en : en.__setitem__(a, b)
@@ -138,10 +139,15 @@ def token_eval(token):
         return token_eval(token_val)
     elif token.t_type == Type.ATOM:
         try:
-            return int(token_val)
+            return ast.literal_eval(token_val)
+            #return int(token_val)
         except:
             #error("DIDNT WORK")
             pass
+        # try:
+        #     return floag(token_val)
+        # except:
+        #     pass
         try:
             return env[token_val]
         except:
